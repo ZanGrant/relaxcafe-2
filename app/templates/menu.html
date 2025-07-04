@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}Manajemen Menu{% endblock %}
+
+{% block content %}
+<div class="tombol-navigasi">
+    <h2>Tambah Menu Baru</h2>
+    <form method="post" action="{{ url_for('menu.tambah_menu') }}" class="form">
+        <div>
+            <label for="nama">Nama Menu</label>
+            <input name="nama" id="nama" required>
+        </div>
+        <div>
+            <label for="harga">Harga</label>
+            <input name="harga" id="harga" type="number" required>
+        </div>
+        <div>
+            <label for="kategori">Kategori</label>
+            <select name="kategori" id="kategori" required onchange="toggleNewKategori(this.value)">
+                {% for k in kategori_list %}
+                    <option value="{{ k }}">{{ k }}</option>
+                {% endfor %}
+                <option value="__new__">+ Kategori Baru</option>
+            </select>
+            <input name="kategori_baru" id="kategori_baru" placeholder="Input Kategori baru" style="display:none; margin-top:5px;">
+        </div>
+        <button type="submit" class="btn btn-green">➕ Tambah Menu</button>
+    </form>
+</div>
+
+<hr/>
+
+<h1 style="margin-bottom: 1rem;">Manajemen Menu</h1>
+{% for kategori, items in menu_kategori.items() %}
+    <h3 style="margin-top: 1.5rem;">{{ kategori }}</h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th style="width: 20rem;">Nama</th>
+                <th>Harga</th>
+                <th>Stok</th>
+                <th style="width: 20rem;">Aksi</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td title="{{ item.nama }}" class="first-td">{{ item.nama }}</td>
+                <td>Rp{{ "{:,.0f}".format(item.harga) }}</td>
+                <td>{{ item.stok }}</td>
+                <td class="action-menu">
+                    <a href="/stok/tambah?from=menu&menu_id={{ item.menu_id }}" 
+                    class="btn-oren action-a">📦 Tambah Stok</a>
+                    <form method="post" action="{{ url_for('menu.hapus_menu', menu_id=item.menu_id) }}" style="display:inline;" onsubmit="showToast('Menu berhasil dihapus')">
+                        <button type="submit" onclick="return confirm('Yakin hapus menu {{ item.nama }}?')"
+                        class="btn-red action-button">🗑️ Hapus</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endfor %}
+
+<script>
+function toggleNewKategori(val) {
+    const inputBaru = document.getElementById('kategori_baru');
+    if (val === '__new__') {
+        inputBaru.style.display = 'block';
+        inputBaru.required = true;
+    } else {
+        inputBaru.style.display = 'none';
+        inputBaru.required = false;
+    }
+}
+</script>
+{% endblock %}

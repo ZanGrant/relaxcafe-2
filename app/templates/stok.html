@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}Manajemen Stok{% endblock %}
+
+{% block content %}
+<div class="tombol-navigasi">
+    <h2>Update Stok Masuk</h2>
+    <form method="post" action="{{ url_for('stok.tambah_stok') }}" class="form">
+        <div>
+            <label for="menu_id">Menu</label>
+            <select name="menu_id" id="menu_id" required>
+                {% for item in menu_list %}
+                <option value="{{ item[0] }}"
+                    {% if selected_menu_id == item[0]|string %}selected{% endif %}>
+                    {{ item[1] }} (stok: {{ item[2] }})
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="jumlah">Jumlah Tambahan</label>
+            <input type="number" name="jumlah" id="jumlah" required>
+        </div>
+        <div>
+            <label for="keterangan">Keterangan (opsional)</label>
+            <input type="text" name="keterangan" id="keterangan">
+        </div>
+        <button type="submit" class="btn btn-green">➕ Tambah Stok</button>
+    </form>
+</div>
+
+<hr/>
+
+<h1>Riwayat Stok Masuk</h1>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Tanggal</th>
+            <th>Menu</th>
+            <th>Jumlah</th>
+            <th>Keterangan</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for s in riwayat_stok %}
+        <tr>
+            <td>{{ s.tanggal.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>{{ s.nama }}</td>
+            <td>+{{ s.jumlah }}</td>
+            <td>{{ s.keterangan or '-' }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function (e) {
+        const existing = document.querySelector('input[name="timestamp"]');
+        if (!existing) {
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = 'timestamp';
+            hiddenInput.value = new Date().toISOString();
+            form.appendChild(hiddenInput);
+        }
+    });
+</script>
+{% endblock %}

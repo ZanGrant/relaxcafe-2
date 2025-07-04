@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Relax Cafe{% endblock %}</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/white-logo.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+</head>
+<body>
+    <!-- Overlay notifikasi -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Navbar -->
+    <header class="navbar">
+        <div class="nav-left">
+            {% set back_url = back_url or url_for('dashboard.main') %}
+            <a href="{{ back_url }}" class="btn btn-back">← Kembali</a>
+        </div>
+        <div class="nav-right">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" class="logo">
+        </div>
+    </header>
+
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+{% if request.args.get('toast') %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("type:", "{{ request.args.get('type', 'success') }}");
+        showToast(
+            {{ request.args.get('toast') | tojson }},
+            "{{ request.args.get('type', 'success') }}"
+        );
+    });
+</script>
+{% endif %}
+</body>
+</html>

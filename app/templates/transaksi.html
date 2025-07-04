@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% block title %}Transaksi{% endblock %}
+
+{% block content %}
+<!-- Tombol lain -->
+<div class="tombol-navigasi" style="margin-bottom: 2rem;">
+    <h2>Transaksi</h2>
+    <div class="transaksi-actions">
+        <a href="{{ url_for('transaksi.arsip') }}" class="btn btn-brown">📄 Arsip</a>
+        <button onclick="openCart()" class="btn btn-brown">🛒 Keranjang</button>
+    </div>
+</div>
+
+<!-- Overlay Keranjang -->
+<div id="cart-overlay" class="cart-overlay hidden">
+    <div class="cart-content">
+        <h2>Keranjang</h2>
+        <label for="nama-pelanggan">Nama Pelanggan (opsional):</label>
+        <input type="text" id="nama-pelanggan" placeholder="Nama Pelanggan" class="input-text">
+        <div id="cart-list">
+            <!-- List keranjang akan diisi lewat JS -->
+        </div>
+        <div class="cart-actions">
+            <button onclick="checkout()" class="btn btn-brown">Bayar</button>
+            <button onclick="clearCart()" class="btn btn-brown">Kosongkan</button>
+            <button onclick="closeCart(); console.log('Tutup clicked')" class="btn btn-brown">Tutup</button>
+        </div>
+    </div>
+</div>
+<hr/>
+
+<!-- Menu Berdasarkan Kategori -->
+<h1>Menu Tersedia</h1>
+{% if menu_kategori %}
+    {% for kategori, items in menu_kategori.items() %}
+        <div class="kategori-blok">
+            <h2 style="text-align: center;">{{ kategori }}</h2>
+            {% if items %}
+                <div class="menu-grid">
+                    {% for item in items %}
+                        <div class="menu-item">
+                            <h4>{{ item.nama }}</h4>
+                            <p>Rp{{ "{:,.0f}".format(item.harga) }}</p>
+                            {% if item.stok > 0 %}
+                                <input type="number" min="1" max="{{ item.stok }}"
+                                placeholder="Qty" id="qty-{{ item.menu_id }}"
+                                oninput="validateQty(this)">
+                                <button onclick="addToCart('{{ item.menu_id }}', '{{ item.nama }}', {{ item.harga }}, document.getElementById('qty-{{ item.menu_id }}').value)">Tambah</button>
+                            {% else %}
+                                <p class="error">Stok kosong</p>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="menu-grid">
+                    <div class="menu-item empty-item">
+                        <p>Tidak ada Menu Tersedia</p>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    {% endfor %}
+{% else %}
+    <div class="menu-grid">
+        <div class="menu-item empty-item">
+            <p>Tidak ada Menu Tersedia</p>
+        </div>
+    </div>
+{% endif %}
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    console.log("Page loaded");
+    console.log("cart-overlay =", document.getElementById('cart-overlay'));
+});
+function validateQty(input) {
+    const max = parseInt(input.max);
+    if (parseInt(input.value) > max) {
+        input.value = max;
+    }
+}
+
+let cart = [];
+
+function renderCart() {
+    const list = document.getElementById('cart-list');
+    list.innerHTML = "";
+    if (cart.length === 0) {
+        list.innerHTML = "<p>Keranjang kosong</p>";
+        return;
+    }
+    let total = 0;
+    cart.forEach(item => {
+        const subtotal = item.qty * item.price;
+        total += subtotal;
+        list.innerHTML += `<p>${item.name} (${item.qty}) - Rp${subtotal.toLocaleString()}</p>`;
+    });
+    list.innerHTML += `<hr><p><strong>Total: Rp${total.toLocaleString()}</strong></p>`;
+}
+
+function openCart() {
+    fetch('/transaksi/get-cart')
+        .then(res => res.json())
+        .then(data => {
+            cart = data;
+            renderCart();
+            document.getElementById('cart-overlay').classList.remove('hidden');
+        })
+        .catch(() => {
+            alert("Gagal memuat keranjang");
+        });
+}
+
+function closeCart() {
+    const overlay = document.getElementById('cart-overlay');
+    if (!overlay) return console.error("cart-overlay not found");
+    overlay.classList.add('hidden');
+}
+
+function addToCart(id, name, price, qty) {
+    qty = parseInt(qty);
+    if (!qty || qty <= 0) return alert("Qty tidak valid");
+
+    const formData = new FormData();
+    formData.append('menu_id', id);
+    formData.append('qty', qty);
+
+    fetch('/transaksi/add-to-cart', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showToast(`${name} (qty = ${qty}) telah ditambahkan ke keranjang`);
+        } else {
+            alert(data.message || "Gagal menambahkan ke keranjang");
+        }
+    })
+    .catch(() => alert("Gagal komunikasi dengan server"));
+}
+function clearCart() {
+    fetch('/transaksi/clear-cart')
+        .then(res => {
+            if (res.ok) {
+                cart = [];
+                renderCart();
+                showToast("Keranjang berhasil dikosongkan");
+            } else {
+                alert("Gagal mengosongkan keranjang");
+            }
+        })
+        .catch(() => alert("Gagal komunikasi dengan server"));
+}
+
+function checkout() {
+    if (cart.length === 0) return showToast("Keranjang kosong","error");
+
+    const namaPelanggan = document.getElementById('nama-pelanggan')?.value || '';
+    const timeStamp = new Date().toLocaleString('sv-SE').replace(' ', 'T');
+    const formData = new FormData();
+    formData.append('nama_pelanggan', namaPelanggan);
+    formData.append('timestamp', timeStamp);
+    console.log("timestamp sent:", timeStamp)
+
+
+
+    fetch('/transaksi/checkout', {method: 'POST', body: formData})
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showToast("Pembayaran berhasil");
+                window.open(data.nota_url, '_blank');
+                cart = [];
+                closeCart();
+            } else {
+                alert(data.message || "Gagal melakukan checkout");
+            }
+        })
+        .catch(() => alert("Gagal komunikasi dengan server"));
+}
+</script>
+
+{% endblock %}

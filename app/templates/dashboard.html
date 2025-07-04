@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - Relax Cafe</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/white-logo.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .navbar {
+            background-color: #d7bfae00;
+            box-shadow: none;
+            padding: 1.5rem;
+        }
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .dashboard-grid {
+            padding: 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            text-align: center;
+            align-items: center;
+            justify-content: center;
+        }
+        .dashboard-item {
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            padding: 1rem;
+            background-color: #fff;
+            transition: all 0.2s ease;
+            width: 8rem;
+        }
+        .dashboard-item:hover {
+            background-color: #e2e2e2;
+            cursor: pointer;
+        }
+        .dashboard-item i {
+            font-size: 36px;
+            color: #333;
+        }
+        .menu-label {
+            margin-top: 0.5rem;
+            font-weight: bold;
+        }
+        .logo-wrapper {
+            text-align: center;
+            padding-bottom: 1rem;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+        .logo-wrapper img {
+            width: 3rem;
+            height: auto;
+            opacity: 0.6;
+        }
+        .user-info {
+            font-size: 14px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="navbar">
+    <div class="nav-left">
+        <a href="{{ url_for('dashboard.logout') }}" class="btn btn-back">⎋ Logout</a>
+    </div>
+    <div class="nav-right">
+        <span class="user-info">
+            <i class="fas fa-user"></i> <b>{{ session.get('user', {}).get('nama', 'Guest') }}</b>
+        </span>
+    </div>
+</header>
+
+<!-- MAIN -->
+<div class="container">
+    <div class="dashboard-grid">
+        <div class="dashboard-item" onclick="location.href='/transaksi'">
+            <i class="fas fa-cash-register"></i>
+            <div class="menu-label">Transaksi Kasir</div>
+        </div>
+
+        <div class="dashboard-item" onclick="location.href='/menu'">
+            <i class="fas fa-utensils"></i>
+            <div class="menu-label">Input Menu</div>
+        </div>
+
+        <div class="dashboard-item" onclick="location.href='/stok'">
+            <i class="fas fa-boxes-stacked"></i>
+            <div class="menu-label">Update Stok</div>
+        </div>
+    </div>
+</div>
+<div class="logo-wrapper">
+    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" onerror="console.log('Gagal load logo')"/>
+</div>
+</body>
+</html>

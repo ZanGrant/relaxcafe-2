@@ -1,0 +1,105 @@
+====Halaman====
+
+Manajemen:
+Laporan
+Company Data
+
+Staf:
+Input menu
+Update stok
+
+Kasir:
+Transaksi
+
+Finance:
+Penjualan
+Pembelian
+
+====Tabel====
+
+-- Tabel kasir
+CREATE TABLE kasir (
+    kasir_id CHAR(5) PRIMARY KEY,
+    nama VARCHAR(100) NOT NULL,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(20) NOT NULL
+);
+
+-- Tabel menu
+CREATE TABLE menu (
+    menu_id CHAR(5) PRIMARY KEY,
+    nama VARCHAR(100) NOT NULL,
+    harga NUMERIC(10,2) NOT NULL,
+    stok INT NOT NULL DEFAULT 0,
+    kategori VARCHAR(20);
+);
+
+-- Tabel transaksi
+CREATE TABLE transaksi (
+    transaksi_id CHAR(5) PRIMARY KEY,
+    tanggal TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    kasir_id CHAR(5) NOT NULL,
+    total NUMERIC(12,2) NOT NULL,
+    nama_pelanggan TEXT NOT NULL,
+    FOREIGN KEY (kasir_id) REFERENCES kasir(kasir_id)
+);
+
+-- Tabel detail transaksi
+CREATE TABLE detail_transaksi (
+    detail_id CHAR(5) PRIMARY KEY,
+    transaksi_id CHAR(5) NOT NULL,
+    menu_id CHAR(5) NOT NULL,
+    qty INT NOT NULL,
+    harga_satuan NUMERIC(10,2) NOT NULL,
+    subtotal NUMERIC(12,2) GENERATED ALWAYS AS (qty * harga_satuan) STORED,
+    FOREIGN KEY (transaksi_id) REFERENCES transaksi(transaksi_id),
+    FOREIGN KEY (menu_id) REFERENCES menu(menu_id)
+);
+
+-- Tabel stok masuk
+CREATE TABLE stok_masuk (
+    stok_id CHAR(5) PRIMARY KEY,
+    menu_id CHAR(5) NOT NULL,
+    jumlah INT NOT NULL,
+    tanggal TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    keterangan TEXT,
+    FOREIGN KEY (menu_id) REFERENCES menu(menu_id)
+);
+
+--Tabel staff  (ubah kasir)
+staf_id
+nama
+username
+password
+role (manajemen, kasir, staf gudang, finance)
+
+===============Tambahan
+laporan keuangan
+laporan stok
+hak akses (sesuai role)
+
+OPTIONAL
+laporan penjualan (tabel: company)
+laporan pembelian
+
+
+
+====Dependencies====
+Package            Version
+------------------ -------
+charset-normalizer 3.4.2
+click              8.1.8
+colorama           0.4.6
+Flask              2.2.5
+importlib-metadata 6.7.0
+itsdangerous       2.1.2
+jinja2             3.1.6
+MarkupSafe         2.1.5
+Pillow             9.5.0
+pip                20.1.1
+psycopg2-binary    2.9.9
+reportlab          4.4.2
+setuptools         47.1.0
+typing-extensions  4.7.1
+Werkzeug           2.2.3
+zipp               3.15.0
