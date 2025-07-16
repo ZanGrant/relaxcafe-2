@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for
+from flask import Blueprint, render_template, request, redirect, url_for, session
 from datetime import datetime
 from app.models.db import get_db
 
@@ -28,13 +28,13 @@ def render_stok_page(selected_menu_id=None):
     cur.close()
     conn.close()
 
-    return render_template('stok.html',
+    return render_template('menu/stok.html',
         menu_list=menu_list,
         riwayat_stok=riwayat_stok,
         selected_menu_id=selected_menu_id
     )
 
-@bp.route('/')
+@bp.route('/list')
 def index():
     return render_stok_page()
 
@@ -49,6 +49,7 @@ def tambah_stok():
     jumlah = int(request.form['jumlah'])
     keterangan = request.form.get('keterangan', '')
     timestamp_str = request.form.get('timestamp')
+    user_id = session.get('user', {}).get('user_id')
     try:
         timestamp = datetime.fromisoformat(timestamp_str)
     except Exception:
@@ -68,9 +69,9 @@ def tambah_stok():
 
     # Insert ke stok_masuk
     cur.execute("""
-        INSERT INTO stok_masuk (stok_id, menu_id, jumlah, tanggal, keterangan)
-        VALUES (%s, %s, %s, %s, %s)
-    """, (stok_id, menu_id, jumlah, timestamp, keterangan))
+        INSERT INTO stok_masuk (stok_id, menu_id, jumlah, tanggal, keterangan, user_id)
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """, (stok_id, menu_id, jumlah, timestamp, keterangan, user_id))
 
     # Update stok di tabel menu
     cur.execute("UPDATE menu SET stok = stok + %s WHERE menu_id = %s", (jumlah, menu_id))

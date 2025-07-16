@@ -3,8 +3,31 @@
 
 {% block content %}
 <div class="tombol-navigasi">
-    <h2>Update Stok Masuk</h2>
-    <form method="post" action="{{ url_for('stok.tambah_stok') }}" class="form">
+    {% if session.get('user', {}).get('role') == 'staf' %}
+    <h1>Riwayat Stok Masuk</h1>
+    <button type="submit" class="btn btn-green action-button"
+    onclick="toggleButtonOverlay('addstock-overlay')">➕ Tambah Stok</button>
+    <div style="display: flex; flex-direction: column;">
+        <span class="user-info">
+            👤 <b>{{ session.get('user', {}).get('nama', 'Guest') }}</b>
+        </span>
+    </div>
+    {% else %}
+    <h1>Laporan Stok Masuk</h1>
+    <button type="submit" class="btn btn-green action-button"
+    onclick="toggleButtonOverlay('stockreport-overlay')">📄 Laporan</button>
+    <div style="display: flex; flex-direction: column;">
+        <span class="user-info">
+            👤 <b>{{ session.get('user', {}).get('nama', 'Guest') }}</b>
+        </span>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Overlay Tambah Stok -->
+<div id="addstock-overlay" class="overlay hidden">
+    <form method="post" action="{{ url_for('stok.tambah_stok') }}" class="content form" enctype="multipart/form-data">
+        <h2>Tambah Stok</h2>
         <div>
             <label for="menu_id">Menu</label>
             <select name="menu_id" id="menu_id" required>
@@ -24,13 +47,16 @@
             <label for="keterangan">Keterangan (opsional)</label>
             <input type="text" name="keterangan" id="keterangan">
         </div>
-        <button type="submit" class="btn btn-green">➕ Tambah Stok</button>
+        <div class="overlay-actions">
+            <button type="submit" class="btn btn-green action-button">Tambah</button>
+            <button onclick="toggleButtonOverlay('addstock-overlay')" class="btn btn-back action-button">Tutup</button>
+        </div>
     </form>
 </div>
 
 <hr/>
 
-<h1>Riwayat Stok Masuk</h1>
+
 <table class="table">
     <thead>
         <tr>

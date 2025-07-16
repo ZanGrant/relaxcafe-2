@@ -5,6 +5,8 @@
     <title>{% block title %}Relax Cafe{% endblock %}</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/white-logo.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     
 </head>
 <body>
@@ -15,7 +17,7 @@
     <header class="navbar">
         <div class="nav-left">
             {% set back_url = back_url or url_for('dashboard.main') %}
-            <a href="{{ back_url }}" class="btn btn-back">← Kembali</a>
+            <a href="{{ back_url }}" class="btn btn-back action-a">← Kembali</a>
         </div>
         <div class="nav-right">
             <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" class="logo">

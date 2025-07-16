@@ -1,90 +1,25 @@
-====Halaman====
+===============Halaman
 
 Manajemen:
+Vendor Data
 Laporan
-Company Data
+Request
 
 Staf:
+Vendor Data
 Input menu
 Update stok
 
 Kasir:
-Transaksi
+Transaksi (rombak ulang)
 
 Finance:
 Penjualan
 Pembelian
 
-====Tabel====
 
--- Tabel kasir
-CREATE TABLE kasir (
-    kasir_id CHAR(5) PRIMARY KEY,
-    nama VARCHAR(100) NOT NULL,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    password VARCHAR(20) NOT NULL
-);
+===============Dependencies
 
--- Tabel menu
-CREATE TABLE menu (
-    menu_id CHAR(5) PRIMARY KEY,
-    nama VARCHAR(100) NOT NULL,
-    harga NUMERIC(10,2) NOT NULL,
-    stok INT NOT NULL DEFAULT 0,
-    kategori VARCHAR(20);
-);
-
--- Tabel transaksi
-CREATE TABLE transaksi (
-    transaksi_id CHAR(5) PRIMARY KEY,
-    tanggal TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    kasir_id CHAR(5) NOT NULL,
-    total NUMERIC(12,2) NOT NULL,
-    nama_pelanggan TEXT NOT NULL,
-    FOREIGN KEY (kasir_id) REFERENCES kasir(kasir_id)
-);
-
--- Tabel detail transaksi
-CREATE TABLE detail_transaksi (
-    detail_id CHAR(5) PRIMARY KEY,
-    transaksi_id CHAR(5) NOT NULL,
-    menu_id CHAR(5) NOT NULL,
-    qty INT NOT NULL,
-    harga_satuan NUMERIC(10,2) NOT NULL,
-    subtotal NUMERIC(12,2) GENERATED ALWAYS AS (qty * harga_satuan) STORED,
-    FOREIGN KEY (transaksi_id) REFERENCES transaksi(transaksi_id),
-    FOREIGN KEY (menu_id) REFERENCES menu(menu_id)
-);
-
--- Tabel stok masuk
-CREATE TABLE stok_masuk (
-    stok_id CHAR(5) PRIMARY KEY,
-    menu_id CHAR(5) NOT NULL,
-    jumlah INT NOT NULL,
-    tanggal TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    keterangan TEXT,
-    FOREIGN KEY (menu_id) REFERENCES menu(menu_id)
-);
-
---Tabel staff  (ubah kasir)
-staf_id
-nama
-username
-password
-role (manajemen, kasir, staf gudang, finance)
-
-===============Tambahan
-laporan keuangan
-laporan stok
-hak akses (sesuai role)
-
-OPTIONAL
-laporan penjualan (tabel: company)
-laporan pembelian
-
-
-
-====Dependencies====
 Package            Version
 ------------------ -------
 charset-normalizer 3.4.2
@@ -103,3 +38,127 @@ setuptools         47.1.0
 typing-extensions  4.7.1
 Werkzeug           2.2.3
 zipp               3.15.0
+
+
+===============Skema Database
+
+CREATE TYPE role_enum AS ENUM ('manajemen', 'kasir', 'staf', 'finance');
+CREATE TYPE status_enum AS ENUM ('pending', 'accepted', 'declined');
+
+-- Tabel user
+CREATE TABLE pengguna (
+    user_id CHAR(5) PRIMARY KEY,
+    nama VARCHAR(100) NOT NULL,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(20) NOT NULL,
+    role role_enum NOT NULL
+);
+
+-- Tabel menu
+CREATE TABLE menu (
+    menu_id CHAR(5) PRIMARY KEY,
+    nama VARCHAR(100) NOT NULL,
+    harga NUMERIC(10,2) NOT NULL,
+    stok INT NOT NULL DEFAULT 0,
+    kategori VARCHAR(20),
+    image_path VARCHAR(255)
+);
+
+-- Tabel transaksi
+CREATE TABLE transaksi (
+    transaksi_id CHAR(5) PRIMARY KEY,
+    tanggal TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    user_id CHAR(5) NOT NULL,
+    nama_pelanggan TEXT NOT NULL,
+    total NUMERIC(12,2) NOT NULL,
+    bayar NUMERIC(12,2) NOT NULL DEFAULT 0,
+    kembalian NUMERIC(12,2) GENERATED ALWAYS AS (bayar - total) STORED,
+    FOREIGN KEY (user_id) REFERENCES pengguna(user_id)
+);
+CREATE TABLE detail_transaksi (
+    detail_transaksi_id CHAR(5) PRIMARY KEY,
+    transaksi_id CHAR(5) NOT NULL,
+    menu_id CHAR(5) NOT NULL,
+    qty INT NOT NULL,
+    harga_satuan NUMERIC(10,2) NOT NULL,
+    subtotal NUMERIC(12,2) GENERATED ALWAYS AS (qty * harga_satuan) STORED,
+    FOREIGN KEY (transaksi_id) REFERENCES transaksi(transaksi_id),
+    FOREIGN KEY (menu_id) REFERENCES menu(menu_id)
+);
+
+--Tabel vendor
+CREATE TABLE vendor (
+    vendor_id CHAR(5) PRIMARY KEY,
+    nama VARCHAR(100) NOT NULL,
+    keterangan TEXT
+);
+
+--Tabel pembelian
+CREATE TABLE pembelian (
+    beli_id CHAR(7) PRIMARY KEY,
+    user_id CHAR(5) NOT NULL,
+    vendor_id CHAR(5) NOT NULL,
+    tanggal TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    total NUMERIC(12,2),
+    keterangan TEXT,
+    status status_enum NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES pengguna(user_id),
+    FOREIGN KEY (vendor_id) REFERENCES vendor(vendor_id)
+);
+CREATE TABLE detail_pembelian (
+    detail_beli_id CHAR(7) PRIMARY KEY,
+    beli_id CHAR(7) NOT NULL,
+    menu_id CHAR(5) NOT NULL,
+    qty INT NOT NULL,
+    harga_beli NUMERIC(10,2) NOT NULL,
+    subtotal NUMERIC(12,2) GENERATED ALWAYS AS (qty * harga_beli) STORED,
+    FOREIGN KEY (beli_id) REFERENCES pembelian(beli_id),
+    FOREIGN KEY (menu_id) REFERENCES menu(menu_id)
+);
+
+-- Tabel stok masuk
+CREATE TABLE stok_masuk (
+    stok_id CHAR(5) PRIMARY KEY,
+    menu_id CHAR(5) NOT NULL,
+    user_id CHAR(5) NOT NULL,
+    jumlah INT NOT NULL,
+    tanggal TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    keterangan TEXT,
+    beli_id CHAR(5),  -- Optional, untuk lacak pembelian
+    FOREIGN KEY (menu_id) REFERENCES menu(menu_id),
+    FOREIGN KEY (user_id) REFERENCES pengguna(user_id),
+    FOREIGN KEY (beli_id) REFERENCES pembelian(beli_id)
+);
+
+
+===============Tambahan
+laporan keuangan
+laporan stok
+hak akses (sesuai role)
+
+OPTIONAL
+laporan penjualan
+laporan pembelian
+fitur pencarian
+fitur gambar menu
+
+===============Dummy
+INSERT INTO pengguna (user_id, nama, username, password, role) VALUES
+('USR01', 'Marvel Grant Pangau', 'manager', 'manager', 'manajemen'),
+('USR02', 'Choi Ji-Woo', 'jiwoo', 'jiwoo', 'kasir'),
+('USR03', 'Staff Gudang', 'staf', 'staf', 'staf'),
+('USR04', 'Bendahuru hara', 'finance', 'finance', 'finance'),
+('USR05', 'Lee Min Ho', 'minho', 'minho', 'kasir'),
+('USR06', 'Admin', 'admin', 'admin', 'admin');
+
+INSERT INTO menu (menu_id, nama, harga, stok, kategori, image_path) VALUES
+('MN001', 'Espresso',        15000.00, 0, 'Minuman', '/static/img/menu_upload/espresso.jpg'),
+('MN002', 'Latte',           18000.00, 0, 'Minuman', '/static/img/menu_upload/latte.jpg'),
+('MN003', 'Lemon Tea',       12000.00, 0, 'Minuman', '/static/img/menu_upload/lemontea.jpg'),
+('MN004', 'Nasi Goreng',     25000.00, 0, 'Makanan', '/static/img/menu_upload/nasgor.jpg'),
+('MN005', 'Mie Goreng',      23000.00, 0, 'Makanan', '/static/img/menu_upload/miegoreng.jpg'),
+('MN006', 'Ayam Geprek',     27000.00, 0, 'Makanan', '/static/img/menu_upload/geprek.jpg'),
+('MN007', 'French Fries',    15000.00, 0, 'Snack',   '/static/img/menu_upload/fries.jpg'),
+('MN008', 'Cheese Burger',   30000.00, 0, 'Snack',   '/static/img/menu_upload/burger.jpg'),
+('MN009', 'Red Velvet Cake', 44000.00, 0, 'Dessert', '/static/img/menu_upload/rvcake.jpg'),
+('MN010', 'Banana Split',    36000.00, 0, 'Dessert', '/static/img/menu_upload/bananasplit.jpg');

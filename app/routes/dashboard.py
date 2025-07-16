@@ -12,19 +12,23 @@ def login():
         password = request.form['password']
 
         conn = get_db()
-        cur = conn.cursor()
-        cur.execute("SELECT kasir_id, nama FROM kasir WHERE username=%s AND password=%s", (username, password))
-        kasir = cur.fetchone()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("SELECT user_id, nama, role FROM pengguna WHERE username = %s AND password = %s", (username, password))
+        user = cur.fetchone()
 
         cur.close()
         conn.close()
 
-        if kasir:
+        if user:
             session['user'] = {
-                'kasir_id': kasir[0],
-                'nama': kasir[1]
+                'user_id': user['user_id'],
+                'nama': user['nama'],
+                'role': user['role']
             }
-            return redirect(url_for('dashboard.main'))
+            if user['role'] == 'kasir':
+                return redirect(url_for('transaksi.index'))
+            else:
+                return redirect(url_for('dashboard.main'))
         else:
             return render_template('index.html', error='Username atau password salah')
 
@@ -35,7 +39,7 @@ def login():
 def main():
     if 'user' not in session:
         return redirect(url_for('dashboard.login'))
-    return render_template('dashboard.html', user=session['user'])
+    return render_template('dashboard/dashboard.html', user=session['user'])
 
 @bp.route('/logout')
 def logout():

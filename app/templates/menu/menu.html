@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% block title %}Manajemen Menu{% endblock %}
+
+{% block content %}
+<div class="tombol-navigasi">
+    <h1>Manajemen Menu</h1>
+    {% if not session.get('user', {}).get('role') == 'manajemen' %}
+    <button type="submit" class="btn btn-green action-button"
+    onclick="toggleButtonOverlay('addmenu-overlay')">➕ Tambah Menu</button>
+    {% endif %}
+    <span class="user-info">
+        👤 <b>{{ session.get('user', {}).get('nama', 'Guest') }}</b>
+    </span>
+</div>
+
+<!-- Overlay tambah menu -->
+<div id="addmenu-overlay" class="overlay hidden">
+    <form method="post" action="{{ url_for('menu.tambah_menu') }}" class="content form"
+    enctype="multipart/form-data">
+        <h2>Tambah Menu</h2>
+        <div>
+            <label for="nama">Nama Menu</label>
+            <input name="nama" id="nama" required>
+        </div>
+        <div>
+            <label for="harga">Harga</label>
+            <input name="harga" id="harga" type="number" required>
+        </div>
+        <div>
+            <label for="kategori">Kategori</label>
+            <select name="kategori" id="kategori" required onchange="toggleNewKategori(this.value)">
+                {% for k in kategori_list %}
+                    <option value="{{ k }}">{{ k }}</option>
+                {% endfor %}
+                <option value="__new__">+ Kategori Baru</option>
+            </select>
+            <input name="kategori_baru" id="kategori_baru" placeholder="Input Kategori baru" style="display:none; margin-top:5px;">
+        </div>
+        <div>
+            <label for="gambar">Gambar (opsional)</label>
+            <input type="file" name="gambar" accept="image/*" style="margin-bottom: 1rem;">
+        </div>
+        <div class="overlay-actions">
+            <button onclick="addmenu()" class="btn btn-green action-button">Tambah</button>
+            <button onclick="toggleButtonOverlay('addmenu-overlay')" class="btn btn-back action-button">Tutup</button>
+        </div>
+    </form>
+</div>
+
+<hr/>
+
+{% for kategori, items in menu_kategori.items() %}
+    <h3 style="margin-top: 1.5rem;">{{ kategori }}</h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th style="width: 20rem;">Nama</th>
+                <th>Gambar</th>
+                <th style="width: 20rem;">Harga</th>
+                <th>Stok</th>
+                <th style="width: 20rem;">Aksi</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td title="{{ item.nama }}" class="first-td">{{ item.nama }}</td>
+                <td style="width: 10rem;">
+                    {% if item.image_path %}
+                        <div class="menu-img-wrapper">
+                            <img src="{{ item.image_path }}" class="menu-img" 
+                                onerror="
+                                    const btn = document.createElement('button');
+                                    btn.className = 'action-button';
+                                    btn.textContent = '🖼️ Tambah Gambar';
+                                    btn.onclick = function() { toggleButtonOverlay('overlay-upload-{{ item.menu_id }}'); };
+                                    const wrapper = this.parentNode;
+                                    wrapper.innerHTML = '';
+                                    wrapper.classList.add('fallback');
+                                    wrapper.appendChild(btn);
+                                ">
+                        </div>
+                    {% else %}
+                        <div class="menu-img-wrapper fallback">
+                            <button class="action-button" onclick="toggleButtonOverlay('overlay-upload-{{ item.menu_id }}')">
+                                🖼️ Tambah Gambar
+                            </button>
+                        </div>
+                    {% endif %}
+                </td>
+                <td>Rp{{ "{:,.0f}".format(item.harga) }}</td>
+                <td>{{ item.stok }}</td>
+                <td>
+                    <div class="action-menu">
+                        {% if not session.get('user', {}).get('role') == 'manajemen' %}
+                        <a href="/stok/tambah?from=menu&menu_id={{ item.menu_id }}" 
+                        class="btn-oren action-a">📦 Tambah Stok</a>
+                        {% endif %}
+                        <form method="post" action="{{ url_for('menu.hapus_menu', menu_id=item.menu_id) }}" style="display:inline;" onsubmit="showToast('Menu berhasil dihapus')">
+                            <button type="submit" onclick="return confirm('Yakin hapus menu {{ item.nama }}?')"
+                            class="btn-red action-button">🗑️ Hapus</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+
+            <!-- Overlay Upload Gambar -->
+            <div id="overlay-upload-{{ item.menu_id }}" class="overlay hidden">
+                <div class="content">
+                    <h2>Upload Gambar Menu</h2>
+                    <form method="POST" action="{{ url_for('menu.upload_gambar', menu_id=item.menu_id) }}"
+                        enctype="multipart/form-data" style="width: 100%;">
+                        <input type="file" name="gambar" accept="image/*" required style="margin-bottom: 1rem;">
+                        <div class="overlay-actions">
+                            <button type="submit" class="btn btn-brown action-button">Unggah</button>
+                            <button type="button" class="btn btn-back action-button"
+                                    onclick="toggleButtonOverlay('overlay-upload-{{ item.menu_id }}')">Tutup</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endfor %}
+
+<script>
+function toggleNewKategori(val) {
+    const inputBaru = document.getElementById('kategori_baru');
+    if (val === '__new__') {
+        inputBaru.style.display = 'block';
+        inputBaru.required = true;
+    } else {
+        inputBaru.style.display = 'none';
+        inputBaru.required = false;
+    }
+}
+</script>
+{% endblock %}

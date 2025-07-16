@@ -1,0 +1,49 @@
+{% set back_url = url_for('supplier.index') %}
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="tombol-navigasi">
+    <h1>{{ vendor[0] }}</h1>
+    <div class="column">
+        <span><strong>Keterangan:</strong></span>
+        <p>{{ vendor[1] or '-' }}</p>
+    </div>
+</div>
+
+<hr>
+
+{% if pembelian_list %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID Pembelian</th>
+                <th>Tanggal</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Keterangan</th>
+                <th>Aksi</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for pembelian in pembelian_list %}
+            <tr>
+                <td>{{ pembelian[0] }}</td>
+                <td>{{ pembelian[1].strftime("%d-%m-%Y %H:%M") }}</td>
+                <td>Rp{{ "{:,.0f}".format(pembelian[2]) }}</td>
+                <td>{{ pembelian[3] }}</td>
+                <td>{{ pembelian[4] or "-" }}</td>
+                <td>
+                    <form method="post" action="{{ url_for('supplier.hapus_pembelian', beli_id=pembelian[0]) }}"
+                          onsubmit="return confirm('Yakin ingin menghapus pembelian ini?');">
+                        <button type="submit" class="btn btn-red action-button">Hapus</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>Tidak ada data pembelian dari vendor ini.</p>
+{% endif %}
+
+{% endblock %}

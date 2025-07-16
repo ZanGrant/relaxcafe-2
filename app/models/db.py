@@ -1,4 +1,5 @@
 import psycopg2
+import psycopg2.extras
 from flask import g, current_app
 
 def get_db():
@@ -9,6 +10,10 @@ def get_db():
             password=current_app.config['DB_PASSWORD'],
             host=current_app.config['DB_HOST']
         )
+        # Biar jam nya konsisten WIB (Tidak mengikuti jam yang diset oleh DBMS)
+        cur = g.db.cursor()
+        cur.execute("SET TIME ZONE 'Asia/Jakarta'")
+        cur.close()
     return g.db
 
 def close_db(e=None):

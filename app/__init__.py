@@ -7,10 +7,12 @@ def create_app():
 
     init_db(app)
 
-    from .routes import dashboard, transaksi, menu, stok
+    from .routes import dashboard, transaksi, menu, stok, pembelian, supplier
     app.register_blueprint(dashboard.bp)
     app.register_blueprint(transaksi.bp)
     app.register_blueprint(menu.bp)
     app.register_blueprint(stok.bp)
+    app.register_blueprint(pembelian.bp)
+    app.register_blueprint(supplier.bp)
 
     return app

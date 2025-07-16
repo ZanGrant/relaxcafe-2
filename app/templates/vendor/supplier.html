@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Supplier{% endblock %}
+
+{% block content %}
+<div class="tombol-navigasi">
+    <h1>Manajemen Supplier</h1>
+    <button type="submit" class="btn btn-green action-button"
+    onclick="toggleButtonOverlay('addsupplier-overlay')">➕ Tambah Supplier</button>
+    <span class="user-info">
+        👤 <b>{{ session.get('user', {}).get('nama', 'Guest') }}</b>
+    </span>
+</div>
+
+<!-- Overlay tambah supplier -->
+<div id="addsupplier-overlay" class="overlay hidden">
+    <form method="post" action="{{ url_for('supplier.tambah_supplier') }}" class="content form" enctype="multipart/form-data">
+        <h2>Tambah Menu</h2>
+        <div>
+            <label for="nama">Nama Supplier</label>
+            <input name="nama" id="nama" required>
+        </div>
+        <div>
+            <label for="keterangan">Keterangan (Opsional)</label>
+            <textarea name="keterangan" id="keterangan"></textarea>
+        </div>
+        <div class="overlay-actions">
+            <button class="btn btn-green action-button">Tambah</button>
+            <button onclick="toggleButtonOverlay('addsupplier-overlay')" class="btn btn-back action-button">Tutup</button>
+        </div>
+    </form>
+</div>
+
+<hr/>
+<div class="tombol-navigasi">
+    <form method="get" action="{{ url_for('supplier.index') }}" class="search">
+        <div class="search-wrapper">
+            <input type="text" name="keyword" placeholder="Search supplier..." value="{{ request.args.get('keyword', '') }}">
+            <button type="submit" class="btn-brown"><i class="fa fa-search"></i></button>
+        </div>
+    </form>
+</div>
+
+{% if vendors %}
+    <div class="menu-grid">
+        {% for vendor in vendors %}
+            <div class="menu-item">
+                <div class="menu-label">
+                    <h3>{{vendor.nama }}</h3>
+                </div>
+                <div class="input-group">
+                    <a href="{{ url_for('supplier.pembelian_by_vendor', vendor_id=vendor.vendor_id) }}"
+                    class="btn btn-brown action-a" style="padding: 7px 10px;">Detail</a>
+                    <form method="post" action="{{ url_for('supplier.hapus_vendor', vendor_id=vendor.vendor_id) }}"
+                        onsubmit="return confirm('Yakin mau hapus vendor ini?');" style="display:inline;">
+                        <button type="submit" class="btn btn-red action-button">Hapus</button>
+                    </form>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="menu-grid">
+        <div class="menu-item empty-item">
+            <p>Tidak ada Supplier</p>
+        </div>
+    </div>
+{% endif %}
+
+{% endblock %}

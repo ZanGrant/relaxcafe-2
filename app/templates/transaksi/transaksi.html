@@ -1,36 +1,56 @@
+{% if session.user and session.user.role == 'kasir' %}
+    {% set back_url = url_for('dashboard.login') %}
+{% endif %}
 {% extends 'base.html' %}
 {% block title %}Transaksi{% endblock %}
 
 {% block content %}
-<!-- Tombol lain -->
-<div class="tombol-navigasi" style="margin-bottom: 2rem;">
-    <h2>Transaksi</h2>
-    <div class="transaksi-actions">
-        <a href="{{ url_for('transaksi.arsip') }}" class="btn btn-brown">📄 Arsip</a>
-        <button onclick="openCart()" class="btn btn-brown">🛒 Keranjang</button>
+<div class="tombol-navigasi">
+    <h1>Menu Tersedia</h1>
+    <div class="nav-actions"> 
+        <button onclick="openCart()" class="btn btn-brown action-button">🛒 Keranjang</button>
+        <a href="{{ url_for('transaksi.arsip') }}" class="btn btn-brown action-a">📄 Arsip</a>
     </div>
+    <span class="user-info">
+        👤 <b>{{ session.get('user', {}).get('nama', 'Guest') }}</b>
+    </span>
 </div>
 
 <!-- Overlay Keranjang -->
-<div id="cart-overlay" class="cart-overlay hidden">
-    <div class="cart-content">
+<div id="cart-overlay" class="overlay hidden">
+    <div class="content">
         <h2>Keranjang</h2>
         <label for="nama-pelanggan">Nama Pelanggan (opsional):</label>
         <input type="text" id="nama-pelanggan" placeholder="Nama Pelanggan" class="input-text">
         <div id="cart-list">
             <!-- List keranjang akan diisi lewat JS -->
         </div>
-        <div class="cart-actions">
-            <button onclick="checkout()" class="btn btn-brown">Bayar</button>
-            <button onclick="clearCart()" class="btn btn-brown">Kosongkan</button>
-            <button onclick="closeCart(); console.log('Tutup clicked')" class="btn btn-brown">Tutup</button>
+        <div id="bayar-input" class="hidden" style="margin: 1rem 0;">
+            <label for="bayar">Bayar (Rp):</label>
+            <input type="number" id="bayar" name="bayar" placeholder="Jumlah Uang" class="input-text" min="0">
+        </div>
+        <div class="overlay-actions">
+            <button onclick="checkout()" class="btn btn-green action-button">Bayar</button>
+            <button onclick="clearCart()" class="btn btn-brown action-button">Kosongkan</button>
+            <button onclick="toggleButtonOverlay('cart-overlay')" class="btn btn-back action-button">Tutup</button>
         </div>
     </div>
 </div>
+
+<!-- Overlay pembayaran -->
+<div id="notif-overlay" class="overlay hidden">
+    <div class="content column">
+        <h2>Pembayaran Berhasil ✅</h2>
+        <p>Total: Rp<span id="notif-total"></span></p>
+        <p>Bayar: Rp<span id="notif-bayar"></span></p>
+        <p><strong>Kembalian: Rp<span id="notif-kembalian"></span></strong></p>
+        <button onclick="toggleButtonOverlay('notif-overlay')" class="btn btn-brown action-button">Tutup</button>
+    </div>
+</div>
+
 <hr/>
 
 <!-- Menu Berdasarkan Kategori -->
-<h1>Menu Tersedia</h1>
 {% if menu_kategori %}
     {% for kategori, items in menu_kategori.items() %}
         <div class="kategori-blok">
@@ -39,13 +59,21 @@
                 <div class="menu-grid">
                     {% for item in items %}
                         <div class="menu-item">
-                            <h4>{{ item.nama }}</h4>
+                            <div class="menu-img-wrapper">
+                                <img src="{{ item.image_path }}" class="menu-img" onerror="this.style.display='none'; this.parentNode.classList.add('fallback')">
+                            </div>
+                            <div class="menu-label">
+                                <h3>{{ item.nama }}</h3>
+                            </div>
                             <p>Rp{{ "{:,.0f}".format(item.harga) }}</p>
                             {% if item.stok > 0 %}
-                                <input type="number" min="1" max="{{ item.stok }}"
-                                placeholder="Qty" id="qty-{{ item.menu_id }}"
-                                oninput="validateQty(this)">
-                                <button onclick="addToCart('{{ item.menu_id }}', '{{ item.nama }}', {{ item.harga }}, document.getElementById('qty-{{ item.menu_id }}').value)">Tambah</button>
+                                <div class="input-group">
+                                    <input type="number" min="1" max="{{ item.stok }}"
+                                        placeholder="Qty" id="qty-{{ item.menu_id }}"
+                                        oninput="validateQty(this)">
+                                    <button onclick="addToCart('{{ item.menu_id }}', '{{ item.nama }}', {{ item.harga }}, document.getElementById('qty-{{ item.menu_id }}').value)"
+                                            class="btn btn-brown action-button">Tambah</button>
+                                </div>
                             {% else %}
                                 <p class="error">Stok kosong</p>
                             {% endif %}
@@ -70,10 +98,6 @@
 {% endif %}
 
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-    console.log("Page loaded");
-    console.log("cart-overlay =", document.getElementById('cart-overlay'));
-});
 function validateQty(input) {
     const max = parseInt(input.max);
     if (parseInt(input.value) > max) {
@@ -85,9 +109,11 @@ let cart = [];
 
 function renderCart() {
     const list = document.getElementById('cart-list');
+    const bayarWrapper = document.getElementById('bayar-input');
     list.innerHTML = "";
     if (cart.length === 0) {
         list.innerHTML = "<p>Keranjang kosong</p>";
+        bayarWrapper.classList.add('hidden');
         return;
     }
     let total = 0;
@@ -97,6 +123,7 @@ function renderCart() {
         list.innerHTML += `<p>${item.name} (${item.qty}) - Rp${subtotal.toLocaleString()}</p>`;
     });
     list.innerHTML += `<hr><p><strong>Total: Rp${total.toLocaleString()}</strong></p>`;
+    bayarWrapper.classList.remove('hidden');
 }
 
 function openCart() {
@@ -105,17 +132,11 @@ function openCart() {
         .then(data => {
             cart = data;
             renderCart();
-            document.getElementById('cart-overlay').classList.remove('hidden');
+            toggleButtonOverlay('cart-overlay');
         })
         .catch(() => {
             alert("Gagal memuat keranjang");
         });
-}
-
-function closeCart() {
-    const overlay = document.getElementById('cart-overlay');
-    if (!overlay) return console.error("cart-overlay not found");
-    overlay.classList.add('hidden');
 }
 
 function addToCart(id, name, price, qty) {
@@ -155,16 +176,23 @@ function clearCart() {
 }
 
 function checkout() {
-    if (cart.length === 0) return showToast("Keranjang kosong","error");
+    if (cart.length === 0) return showToast("Keranjang kosong", "error");
 
     const namaPelanggan = document.getElementById('nama-pelanggan')?.value || '';
+    const bayarInput = document.getElementById('bayar');
+    const bayar = parseFloat(bayarInput?.value || 0);
+
+    let total = cart.reduce((sum, item) => sum + item.qty * item.price, 0);
+
+    if (bayar < total) {
+        return showToast("Pembayaran tidak cukup", "error");
+    }
+
     const timeStamp = new Date().toLocaleString('sv-SE').replace(' ', 'T');
     const formData = new FormData();
     formData.append('nama_pelanggan', namaPelanggan);
     formData.append('timestamp', timeStamp);
-    console.log("timestamp sent:", timeStamp)
-
-
+    formData.append('bayar', bayar);
 
     fetch('/transaksi/checkout', {method: 'POST', body: formData})
         .then(res => res.json())
@@ -172,8 +200,16 @@ function checkout() {
             if (data.success) {
                 showToast("Pembayaran berhasil");
                 window.open(data.nota_url, '_blank');
+
+                // Tampilkan overlay notifikasi
+                document.getElementById('notif-total').textContent = total.toLocaleString();
+                document.getElementById('notif-bayar').textContent = bayar.toLocaleString();
+                document.getElementById('notif-kembalian').textContent = (bayar - total).toLocaleString();
+                document.getElementById('notif-overlay').classList.remove('hidden');
+
                 cart = [];
-                closeCart();
+                renderCart(); // update tampilan keranjang
+                toggleButtonOverlay('cart-overlay')
             } else {
                 alert(data.message || "Gagal melakukan checkout");
             }

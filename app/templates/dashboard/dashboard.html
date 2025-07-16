@@ -16,6 +16,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            padding: 2rem;
         }
         .dashboard-grid {
             padding: 2rem;
@@ -25,6 +26,7 @@
             text-align: center;
             align-items: center;
             justify-content: center;
+            max-width: 40rem;
         }
         .dashboard-item {
             border: 2px solid #ccc;
@@ -32,7 +34,7 @@
             padding: 1rem;
             background-color: #fff;
             transition: all 0.2s ease;
-            width: 8rem;
+            width: 6rem;
         }
         .dashboard-item:hover {
             background-color: #e2e2e2;
@@ -43,8 +45,10 @@
             color: #333;
         }
         .menu-label {
-            margin-top: 0.5rem;
-            font-weight: bold;
+            min-height: 3em !important;
+            align-items: center;
+            text-align: center;
+            padding: 0 5px;
         }
         .logo-wrapper {
             text-align: center;
@@ -69,7 +73,7 @@
 <!-- HEADER -->
 <header class="navbar">
     <div class="nav-left">
-        <a href="{{ url_for('dashboard.logout') }}" class="btn btn-back">⎋ Logout</a>
+        <a href="{{ url_for('dashboard.logout') }}" class="btn btn-back action-a">⎋ Logout</a>
     </div>
     <div class="nav-right">
         <span class="user-info">
@@ -80,21 +84,64 @@
 
 <!-- MAIN -->
 <div class="container">
+    {% set role = session.get('user', {}).get('role') %}
     <div class="dashboard-grid">
-        <div class="dashboard-item" onclick="location.href='/transaksi'">
+
+        <!-- TRANSAKSI KASIR -->
+        {% if role in ['admin'] %}
+        <div class="dashboard-item" onclick="location.href='/transaksi/kasir'">
             <i class="fas fa-cash-register"></i>
             <div class="menu-label">Transaksi Kasir</div>
         </div>
+        {% endif %}
 
-        <div class="dashboard-item" onclick="location.href='/menu'">
+        <!-- DATA MENU -->
+        {% if role in ['admin', 'staf', 'manajemen'] %}
+        <div class="dashboard-item" onclick="location.href='/menu/list'">
             <i class="fas fa-utensils"></i>
-            <div class="menu-label">Input Menu</div>
+            <div class="menu-label">Data Menu</div>
         </div>
+        {% endif %}
 
-        <div class="dashboard-item" onclick="location.href='/stok'">
-            <i class="fas fa-boxes-stacked"></i>
-            <div class="menu-label">Update Stok</div>
+        <!-- DATA SUPPLIER -->
+         {% if role in ['admin', 'manajemen'] %}
+        <div class="dashboard-item" onclick="location.href='/supplier/list'">
+            <i class="fas fa-industry"></i>
+            <div class="menu-label">Data Supplier</div>
         </div>
+        {% endif %}
+
+        <!-- UPDATE STOK -->
+        {% if role in ['admin', 'staf', 'manajemen'] %}
+        <div class="dashboard-item" onclick="location.href='/stok/list'">
+            <i class="fas fa-boxes-stacked"></i>
+            <div class="menu-label">Stok Masuk</div>
+        </div>
+        {% endif %}
+
+        <!-- PEMBELIAN -->
+         {% if role in ['admin', 'finance', 'manajemen'] %}
+        <div class="dashboard-item" onclick="location.href='/pembelian/list'">
+            <i class="fas fa-cart-arrow-down"></i>
+            <div class="menu-label">Pembelian</div>
+        </div>
+        {% endif %}
+
+        <!-- REQUEST -->
+         {% if role in ['admin', 'manajemen'] %}
+        <div class="dashboard-item" onclick="location.href='/request/list'">
+            <i class="fas fa-clipboard-check"></i>
+            <div class="menu-label">Request</div>
+        </div>
+        {% endif %}
+
+        <!-- ARSIP TRANSAKSI -->
+         {% if role in ['admin', 'finance', 'manajemen'] %}
+        <div class="dashboard-item" onclick="location.href='/transaksi/arsip?from=dashboard'">
+            <i class="fas fa-file-alt"></i>
+            <div class="menu-label">Arsip Transaksi</div>
+        </div>
+        {% endif %}
     </div>
 </div>
 <div class="logo-wrapper">

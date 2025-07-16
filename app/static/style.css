@@ -1,7 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+
 body {
     margin: 0; padding: 0;
     box-sizing: border-box;
-    font-family: sans-serif;
+    font-family: 'Plus Jakarta Sans', sans-serif;
     background-color: #f5f5f5;
 }
 body::-webkit-scrollbar {
@@ -33,12 +35,56 @@ body::-webkit-scrollbar {
 .hidden {
     display: none !important;
 }
-.tombol-navigasi h2 {
-    opacity: 50%;
+.tombol-navigasi {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    border: 1px solid #ccc;
+    gap: 1rem;
+    border-radius: 1rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+.tombol-navigasi h1 {
+    flex-basis: 100%;
+}
+hr {
+    margin-bottom: 1rem;
+}
+input,
+select,
+textarea {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    background-color: #fff;
+    transition: border-color 0.2s;
+}
+textarea {
+    height: 10rem;
+    resize: none;
+}
+label {
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #333;
+}
+.nav-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+.column {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
 }
 /* FORM */
 .form {
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
     display: flex;
     flex-wrap: wrap;
     gap: 1rem;
@@ -47,6 +93,34 @@ body::-webkit-scrollbar {
 .form div {
     display: flex;
     flex-direction: column;
+}
+
+/* SEARCH */
+.search {
+    display: flex;
+    justify-content: center;
+}
+.search-wrapper {
+    display: flex;
+    align-items: center;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.search-wrapper input[type="text"] {
+    border: none;
+    outline: none;
+    padding: 8px 12px;
+    width: 80%;
+}
+.search-wrapper button {
+    border: none;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+.search-wrapper i.fa-search {
+    font-size: 14px;
 }
 
 /* TABEL */
@@ -89,7 +163,6 @@ body::-webkit-scrollbar {
 
 /* TOMBOL */
 .btn {
-    padding: 8px 14px;
     border: none;
     border-radius: 6px;
     text-decoration: none;
@@ -127,22 +200,29 @@ body::-webkit-scrollbar {
     background-color: #ffc107;
     color: black;
 }
+.btn-blue {
+    background-color: #007bff;
+    color: white;
+}
 
 .action-button {
-    padding: 6px 8px;
+    padding: 8px 10px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
+    font-size: 0.9rem;
 }
 .action-a {
-    padding: 4px 8px;
+    padding: 8px 10px;
     border: none;
     border-radius: 4px;
     text-decoration: none;
     cursor: pointer;
+    text-align: center;
+    font-size: 0.9rem;
 }
 
-/* HALAMAN TRANSAKSI */
+/* GRID DATA */
 .menu-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -150,14 +230,53 @@ body::-webkit-scrollbar {
 }
 .menu-item {
     border: 1px solid #ccc;
-    padding: 10px;
+    padding: 1rem;
     border-radius: 10px;
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
+    background-color: #fff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+.menu-img-wrapper {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+    background-color: #f0f0f0;
+}
+.menu-img-wrapper.fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #ccc;
+}
+.menu-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    border-radius: 8px;
+}
+.menu-label {
+    margin-top: 0.5rem;
+    font-weight: bold;
+    min-height: 5em;
+    display: flex;
+    justify-content: center;
+    text-align: left;
+}
+.input-group {
+    display: flex;
+    gap: 0.8rem;
+    margin-top: 8px;
+    align-items: center;
 }
 
-.cart-overlay {
+/* OVERLAY */
+.overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -169,11 +288,32 @@ body::-webkit-scrollbar {
     align-items: center;
     z-index: 999;
 }
-.cart-content {
+.content {
     background: #fff;
     padding: 20px;
-    width: 400px;
+    width: 20rem;
     border-radius: 10px;
+    display: flex;
+    flex-wrap: wrap;
+}
+.content h2, .content div {
+    flex-basis: 100%;
+}
+.overlay-actions {
+    display: flex;
+    gap: .5rem;
+    justify-content: flex-end;
+}
+.wider-width {
+    width: 40rem;
+    max-width: fit-content;
+    overflow-y: auto;
+    max-height: 90vh;
+    -ms-overflow-style: none;  /* for IE & Edge */
+    scrollbar-width: none;     /* for Firefox */
+}
+.wider-width::-webkit-scrollbar {
+    display: none;
 }
 
 /* ShowToast */

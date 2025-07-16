@@ -1,0 +1,179 @@
+{% set back_url = url_for('transaksi.index') %}
+{% set asal = request.args.get('from') %}
+{% if asal == 'dashboard' %}
+    {% set back_url = url_for('dashboard.main') %}
+{% endif %}
+{% extends 'base.html' %}
+{% block title %}Arsip Transaksi{% endblock %}
+
+{% block content %}
+<div class="tombol-navigasi">
+    {% if session.get('user', {}).get('role') == 'kasir' %}
+    <h1>Arsip Transaksi</h1>
+    <div style="display: flex; flex-direction: column;">
+        <label for="kasir">Kasir</label>
+        <span class="user-info">
+            👤 <b>{{ session.get('user', {}).get('nama', 'Guest') }}</b>
+        </span>
+    </div>
+    {% else %}
+    <h1>Laporan Transaksi</h1>
+    <button type="submit" class="btn btn-green action-button"
+    onclick="toggleButtonOverlay('transactionreport-overlay')">📄 Laporan</button>
+    <div style="display: flex; flex-direction: column;">
+        <span class="user-info">
+            👤 <b>{{ session.get('user', {}).get('nama', 'Guest') }}</b>
+        </span>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Overlay Laporan Transaksi -->
+<div id="transactionreport-overlay" class="overlay hidden">
+    <div class="content">
+        <h2>Filter Laporan Transaksi</h2>
+        <form method="get" class="form" action="{{ url_for('transaksi.laporan_transaksi_pdf') }}" target="_blank" id="form-laporan-transaksi">
+            <div>
+                <label for="start">Dari Tanggal</label>
+                <input type="date" id="start" name="start" required>
+            </div>
+            <div>
+                <label for="end">Sampai Tanggal</label>
+                <input type="date" id="end" name="end" required>
+            </div>
+            {% if session.get('user', {}).get('role') in ['manajemen', 'admin'] %}
+            <div>
+                <label for="kasir">Kasir</label>
+                <select id="kasir" name="kasir">
+                    <option value="">Semua Kasir</option>
+                    {% for k in kasir_list %}
+                        <option value="{{ k['user_id'] }}">{{ k['nama'] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="overlay-actions">
+                <button type="submit" class="btn btn-green action-button">📥 Unduh</button>
+                <button type="button" class="btn btn-back action-button" onclick="toggleButtonOverlay('transactionreport-overlay')">Batal</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<hr/>
+
+<div class="tombol-navigasi">
+    <form method="get" class="form" id="form-filter-list">
+        <div>
+            <label for="start">Dari Tanggal</label>
+            <input type="date" id="start" name="start" value="{{ request.args.get('start', '') }}">
+        </div>
+        <div>
+            <label for="end">Sampai Tanggal</label>
+            <input type="date" id="end" name="end" value="{{ request.args.get('end', '') }}">
+        </div>
+        {% if session.get('user', {}).get('role') in ['manajemen', 'admin'] %}
+        <div>
+            <label for="kasir">Kasir</label>
+            <select id="kasir" name="kasir">
+                <option value="">Semua Kasir</option>
+                {% for k in kasir_list %}
+                    <option value="{{ k['user_id'] }}" {% if request.args.get('kasir') == k['user_id'] %}selected{% endif %}>{{ k['nama'] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+        <div>
+            <label style="visibility: hidden;">Filter</label>
+            <button type="submit" class="btn btn-blue action-button" style="padding: .5rem 1.5rem;">🔍 Filter</button>
+        </div>
+    </form>
+</div>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Tanggal</th>
+            <th>Kasir</th>
+            <th>Pelanggan</th>
+            <th>Total</th>
+            <th style="width: 20rem;">Aksi</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in transaksi %}
+        <tr>
+            <td>{{ row['tanggal'].strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            <td>{{ row['nama'] }}</td>
+            <td>{{ row['nama_pelanggan'] or '-' }}</td>
+            <td>Rp{{ "{:,.0f}".format(row['total']) }}</td>
+            <td>
+                <div class="action-menu">
+                    <button class="btn-green action-button detail-button"
+                    data-id="{{ row['transaksi_id'] }}">🔽 Detail</button>
+                    <a href="{{ url_for('transaksi.cetak_nota', transaksi_id=row['transaksi_id']) }}"
+                    class="btn-oren action-a" target="_blank">🖨️ Cetak</a>
+                    <form method="post" action="{{ url_for('transaksi.hapus_transaksi', transaksi_id=row['transaksi_id']) }}" style="display:inline;">
+                        <button type="submit"
+                        onclick="return confirm('Yakin hapus transaksi {{ row['transaksi_id'] }}?')"
+                        class="btn-red action-button">🗑️ Hapus</button>
+                    </form>
+                </div>
+            </td>
+        </tr>
+        <tr class="detail-row hidden" id="detail-{{ row['transaksi_id'] }}">
+            <td colspan="6" style="background-color: #f9f9f9; padding: 8px; border: 1px solid #ccc;">
+                <div class="detail-container" style="padding-left: 1rem; font-style: italic; color: #333;">Loading...</div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+document.querySelectorAll('.detail-button').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const id = this.dataset.id;
+        const detailRow = document.getElementById('detail-' + id);
+        const container = detailRow.querySelector('.detail-container');
+
+        if (!detailRow.classList.contains('hidden')) {
+            detailRow.classList.add('hidden');
+            return;
+        }
+
+        fetch(`/transaksi/detail-json/${id}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.length === 0) {
+                    container.innerHTML = '<p style="margin: 0; color: #888;">Tidak ada detail transaksi</p>';
+                } else {
+                    let html = '<table class="sub-table">';
+                    html += '<thead><tr><th style="text-align:left;">Menu (Qty)</th><th style="text-align:right;">Subtotal</th></tr></thead>';
+                    html += '<tbody>';
+                    data.forEach(item => {
+                        html += `<tr>
+                                    <td>${item.nama} (${item.qty})</td>
+                                    <td style="text-align:right;">Rp${item.subtotal.toLocaleString()}</td>
+                                 </tr>`;
+                    });
+                    html += '</tbody></table>';
+                    container.innerHTML = html;
+                }
+                detailRow.classList.remove('hidden');
+            })
+            .catch(() => {
+                container.innerHTML = '<p style="color:red;">Gagal memuat detail</p>';
+                detailRow.classList.remove('hidden');
+            });
+    });
+});
+document.addEventListener("DOMContentLoaded", () => {
+    addTanggalRangeValidator('form-laporan-transaksi');
+    addTanggalRangeValidator('form-filter-list');
+});
+
+</script>
+
+{% endblock %}
