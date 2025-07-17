@@ -263,9 +263,11 @@ label {
 .menu-label {
     margin-top: 0.5rem;
     font-weight: bold;
-    min-height: 5em;
+    min-height: 6rem;
     display: flex;
-    justify-content: center;
+    align-items: center;
+}
+.text-align-left {
     text-align: left;
 }
 .input-group {

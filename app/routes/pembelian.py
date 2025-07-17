@@ -12,6 +12,9 @@ bp = Blueprint('pembelian', __name__, url_prefix='/pembelian')
 
 @bp.route('/list')
 def index():
+    start = request.args.get('start')
+    end = request.args.get('end')
+
     conn = get_db()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
@@ -21,13 +24,26 @@ def index():
     cur.execute("SELECT vendor_id, nama FROM vendor ORDER BY nama")
     vendor_list = cur.fetchall()
 
-    cur.execute("""
+    query = """
         SELECT p.beli_id, p.tanggal, u.nama AS kasir, v.nama AS vendor, p.total, p.keterangan
         FROM pembelian p
         JOIN pengguna u ON p.user_id = u.user_id
         JOIN vendor v ON p.vendor_id = v.vendor_id
-        ORDER BY p.tanggal DESC
-    """)
+        WHERE 1=1
+    """
+    params = []
+
+    if start:
+        query += " AND p.tanggal >= %s"
+        params.append(start)
+
+    if end:
+        query += " AND p.tanggal <= %s"
+        params.append(end + " 23:59:59")
+
+    query += " ORDER BY p.tanggal DESC"
+
+    cur.execute(query, params)
     riwayat_pembelian = cur.fetchall()
 
     cur.close()
@@ -36,7 +52,9 @@ def index():
     return render_template('pembelian/pembelian.html',
         menu_list=menu_list,
         vendor_list=vendor_list,
-        riwayat_pembelian=riwayat_pembelian
+        riwayat_pembelian=riwayat_pembelian,
+        start=start,
+        end=end
     )
 
 
@@ -255,5 +273,141 @@ def cetak_invoice(beli_id):
         buffer,
         as_attachment=False,
         download_name=f'invoice_{beli_id}.pdf',
+        mimetype='application/pdf'
+    )
+
+@bp.route('/laporan')
+def laporan_pembelian_pdf():
+    start = request.args.get('start')
+    end = request.args.get('end')
+
+    if not start or not end:
+        return "Tanggal harus diisi", 400
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    # Ambil data pembelian yang accepted saja
+    query = """
+        SELECT p.beli_id, p.tanggal, v.nama AS vendor, p.total
+        FROM pembelian p
+        JOIN vendor v ON p.vendor_id = v.vendor_id
+        WHERE DATE(p.tanggal) BETWEEN %s AND %s
+        AND p.status = 'accepted'
+        ORDER BY p.tanggal DESC
+    """
+    cur.execute(query, [start, end])
+    pembelian_data = cur.fetchall()
+
+    # Ambil semua detail pembelian
+    detail_query = """
+        SELECT d.beli_id, m.nama, d.qty, d.harga_beli, d.subtotal
+        FROM detail_pembelian d
+        JOIN menu m ON d.menu_id = m.menu_id
+        WHERE d.beli_id IN (
+            SELECT beli_id FROM pembelian
+            WHERE DATE(tanggal) BETWEEN %s AND %s
+            AND status = 'accepted'
+        )
+        ORDER BY d.beli_id
+    """
+    cur.execute(detail_query, [start, end])
+    detail_data = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    # Gabungkan detail berdasarkan beli_id
+    from collections import defaultdict
+    grouped_detail = defaultdict(list)
+    for d in detail_data:
+        beli_id, nama_menu, qty, harga_beli, subtotal = d
+        grouped_detail[beli_id].append({
+            'menu': nama_menu,
+            'qty': qty,
+            'harga': harga_beli,
+            'subtotal': subtotal
+        })
+
+    # PDF
+    buffer = io.BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+    pdf.setFont("Helvetica-Bold", 14)
+    y = height - 40
+
+    pdf.drawCentredString(width / 2, y, "Laporan Pembelian")
+    y -= 25
+    pdf.setFont("Helvetica", 12)
+    pdf.drawString(50, y, "Periode:")
+    y -= 20
+    pdf.setFont("Helvetica-Bold", 11)
+    pdf.drawString(50, y, f"{start}  s.d.  {end}")
+    y -= 30
+
+    total_semua = 0
+    pdf.setFont("Helvetica", 10)
+
+    for p in pembelian_data:
+        beli_id, tanggal, vendor, total = p
+        if y < 120:
+            pdf.showPage()
+            y = height - 50
+            pdf.setFont("Helvetica-Bold", 14)
+            pdf.drawCentredString(width / 2, y, "Laporan Pembelian")
+            y -= 30
+            pdf.setFont("Helvetica", 10)
+
+        pdf.setFont("Helvetica-Bold", 10)
+        y -= 10
+        pdf.drawString(50, y, f"Tanggal: {tanggal.strftime('%Y-%m-%d')}")
+        y -= 15
+        pdf.drawString(50, y, f"Vendor: {vendor}")
+        y -= 15
+        pdf.drawString(50, y, f"ID: {beli_id}")
+        y -= 25
+
+        pdf.setFont("Helvetica", 10)
+        pdf.drawString(60, y, "Menu")
+        pdf.drawString(220, y, "Qty")
+        pdf.drawString(280, y, "Harga Beli")
+        pdf.drawString(380, y, "Subtotal")
+        y -= 10
+        pdf.line(50, y, 550, y)
+        y -= 15
+
+        for item in grouped_detail.get(beli_id, []):
+            pdf.drawString(60, y, item['menu'][:30])
+            pdf.drawString(220, y, str(item['qty']))
+            pdf.drawString(280, y, f"{int(item['harga']):,}".replace(",", "."))
+            pdf.drawString(380, y, f"{int(item['subtotal']):,}".replace(",", "."))
+            y -= 15
+            if y < 80:
+                pdf.showPage()
+                y = height - 50
+                pdf.setFont("Helvetica", 10)
+
+        pdf.setFont("Helvetica-Bold", 10)
+        y-= 10
+        pdf.drawString(390, y, f"Total:")
+        pdf.drawRightString(500, y, f"Rp. {int(total):,}".replace(",", "."))
+        total_semua += float(total)
+        y -= 25
+
+    # Footer Total
+    pdf.setFont("Helvetica-Bold", 11)
+    y -= 40
+    pdf.drawRightString(380, y, "Total Semua:")
+    pdf.drawRightString(500, y, f"Rp. {int(total_semua):,}".replace(",", "."))
+
+    pdf.setTitle("Laporan Pembelian")
+    pdf.showPage()
+    pdf.save()
+    buffer.seek(0)
+
+    return send_file(
+        buffer,
+        as_attachment=False,
+        download_name=f'laporan_pembelian_{start}_sd_{end}.pdf',
         mimetype='application/pdf'
     )

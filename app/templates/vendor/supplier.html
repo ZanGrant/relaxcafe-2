@@ -14,7 +14,7 @@
 <!-- Overlay tambah supplier -->
 <div id="addsupplier-overlay" class="overlay hidden">
     <form method="post" action="{{ url_for('supplier.tambah_supplier') }}" class="content form" enctype="multipart/form-data">
-        <h2>Tambah Menu</h2>
+        <h2>Tambah Supplier</h2>
         <div>
             <label for="nama">Nama Supplier</label>
             <input name="nama" id="nama" required>
@@ -44,6 +44,7 @@
     <div class="menu-grid">
         {% for vendor in vendors %}
             <div class="menu-item">
+                    <span style="font-size: 0.8em; color: #666;">ID: {{ vendor.vendor_id }}</span>
                 <div class="menu-label">
                     <h3>{{vendor.nama }}</h3>
                 </div>

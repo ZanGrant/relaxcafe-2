@@ -11,15 +11,34 @@ def index():
     conn = get_db()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
+    keyword = request.args.get('keyword', '').strip().lower()
+
     cur.execute("SELECT DISTINCT kategori FROM menu ORDER BY kategori")
     kategori_list = [row['kategori'] for row in cur.fetchall()]
 
     menu_kategori = {}
     for kategori in kategori_list:
-        cur.execute("SELECT menu_id, nama, harga, stok, image_path FROM menu WHERE kategori = %s", (kategori,))
-        menu_kategori[kategori] = cur.fetchall()
+        if keyword:
+            cur.execute("""
+                SELECT menu_id, nama, harga, stok, image_path 
+                FROM menu 
+                WHERE kategori = %s AND LOWER(nama) LIKE %s
+            """, (kategori, f'%{keyword}%'))
+        else:
+            cur.execute("""
+                SELECT menu_id, nama, harga, stok, image_path 
+                FROM menu 
+                WHERE kategori = %s
+            """, (kategori,))
+        
+        items = cur.fetchall()
+        if items:  # hanya simpan kategori yang ada hasilnya
+            menu_kategori[kategori] = items
 
-    return render_template('menu/menu.html', kategori_list=kategori_list, menu_kategori=menu_kategori)
+    return render_template('menu/menu.html',
+                           kategori_list=kategori_list,
+                           menu_kategori=menu_kategori)
+
 
 @bp.route('/tambah', methods=['POST'])
 def tambah_menu():

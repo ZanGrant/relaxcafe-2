@@ -12,9 +12,9 @@ def index():
     keyword = request.args.get('keyword', '').strip()
     if keyword:
         cur.execute("""
-            SELECT vendor_id, nama, keterangan
+            SELECT vendor_id, nama
             FROM vendor
-            WHERE LOWER(nama) LIKE %s OR LOWER(keterangan) LIKE %s
+            WHERE LOWER(nama) LIKE %s OR LOWER(vendor_id) LIKE %s
             ORDER BY nama
         """, (f"%{keyword.lower()}%", f"%{keyword.lower()}%"))
     else:
@@ -56,7 +56,7 @@ def hapus_vendor(vendor_id):
 
     if any(count[0] > 0 for count in dependencies):
         cur.close()
-        return redirect(url_for('supplier.index', toast="Vendor terdapat data pembelian", type="error"))
+        return redirect(url_for('supplier.index', toast="Terdapat data pembelian", type="error"))
     cur.execute("DELETE FROM vendor WHERE vendor_id = %s", (vendor_id,))
     conn.commit()
     cur.close()

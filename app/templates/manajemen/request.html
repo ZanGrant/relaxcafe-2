@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+{% block title %}Manajemen Pembelian{% endblock %}
+
+{% block content %}
+<div class="tombol-navigasi">
+    {% if session.get('user', {}).get('role') == 'finance' %}
+    <h1>Riwayat Pembelian</h1>
+    <button type="submit" class="btn btn-green action-button"
+    onclick="toggleButtonOverlay('addpembelian-overlay')">➕ Tambah Pembelian</button>
+    <div style="display: flex; flex-direction: column;">
+        <span class="user-info">👤 <b>{{ session.get('user', {}).get('nama', 'Guest') }}</b></span>
+    </div>
+    {% else %}
+    <h1>Request Pembelian</h1>
+    <div style="display: flex; flex-direction: column;">
+        <span class="user-info">
+            👤 <b>{{ session.get('user', {}).get('nama', 'Guest') }}</b>
+        </span>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Overlay Tambah Pembelian -->
+<div id="addpembelian-overlay" class="overlay hidden">
+  <form method="post" action="{{ url_for('pembelian.tambah_pembelian') }}" class="content form wider-width">
+    <h2>Tambah Pembelian</h2>
+    <div>
+      <label for="vendor_id">Vendor</label>
+      <select name="vendor_id" required>
+        {% for v in vendor_list %}
+        <option value="{{ v[0] }}">{{ v[1] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label for="keterangan">Keterangan</label>
+      <input type="text" name="keterangan">
+    </div>
+    <hr/>
+    <table class="table" id="detail-table">
+      <thead>
+        <tr>
+          <th>Menu</th>
+          <th>Qty</th>
+          <th>Harga Beli</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- detail row akan ditambahkan di sini -->
+      </tbody>
+    </table>
+    <button type="button" class="btn btn-blue action-button" onclick="addDetailRow()">➕ Tambah</button>
+    <div class="overlay-actions">
+      <button type="submit" class="btn btn-green action-button">Simpan</button>
+      <button type="button" onclick="toggleButtonOverlay('addpembelian-overlay')" class="btn btn-back action-button">Tutup</button>
+    </div>
+  </form>
+</div>
+
+<hr/>
+
+{% for status in ['pending', 'accepted', 'declined'] %}
+    {% if data_by_status[status] %}
+        <h3 style="margin-top: 2rem;">
+            {% if status == 'pending' %}🟡 Pending{% elif status == 'accepted' %}🟢 Accepted{% else %}🔴 Declined{% endif %}
+        </h3>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Tanggal</th>
+                    <th>Input oleh</th>
+                    <th>Vendor</th>
+                    <th>Total</th>
+                    <th style="width: 12rem;">Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in data_by_status[status] %}
+                    <tr>
+                        <td>{{ row['tanggal'].strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ row['kasir'] }}</td>
+                        <td>{{ row['vendor'] }}</td>
+                        <td>Rp{{ "{:,.0f}".format(row['total']) }}</td>
+                        <td>
+                            <div class="action-menu">
+                                <button class="btn-blue action-button detail-button"
+                                data-id="{{ row['beli_id'] }}">🔽 Detail</button>
+
+                                {% if status == 'pending' %}
+                                <form method="post" action="{{ url_for('request.ubah_status', beli_id=row['beli_id'], new_status='accepted') }}" style="display:inline;">
+                                    <button class="btn-green action-button">✅ ACC</button>
+                                </form>
+                                <form method="post" action="{{ url_for('request.ubah_status', beli_id=row['beli_id'], new_status='declined') }}" style="display:inline;">
+                                    <button class="btn-red action-button">❌ Cancel</button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="detail-row hidden" id="detail-{{ row['beli_id'] }}">
+                        <td colspan="5" style="background-color:#f9f9f9; padding:8px; border:1px solid #ccc;">
+                            <div class="detail-container" style="padding-left:1rem; font-style:italic; color:#333;">Loading...</div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+{% endfor %}
+
+
+<script>
+const menuData = [
+    {% for m in menu_list %}
+        { id: "{{ m[0] }}", nama: "{{ m[1] }}" },
+    {% endfor %}
+];
+
+function addDetailRow() {
+    const tbody = document.querySelector("#detail-table tbody");
+    const row = document.createElement("tr");
+
+    row.innerHTML = `
+        <td>
+            <select name="menu_id[]" required></select>
+        </td>
+        <td><input type="number" name="qty[]" min="1" required></td>
+        <td><input type="number" step="0.01" name="harga_beli[]" required></td>
+        <td><button type="button" onclick="removeRow(this)">❌</button></td>
+    `;
+
+    tbody.appendChild(row);
+    updateAllDropdowns();  // Panggil ini setelah nambah baris
+}
+
+function removeRow(button) {
+    button.closest('tr').remove();
+    updateAllDropdowns();  // Update pilihan menu setelah hapus
+}
+
+function updateAllDropdowns() {
+    const selects = document.querySelectorAll('select[name="menu_id[]"]');
+    const selectedValues = Array.from(selects)
+        .map(s => s.value)
+        .filter(v => v); // filter out empty
+
+    selects.forEach(select => {
+        const current = select.value;
+
+        // Hapus semua option dulu
+        select.innerHTML = '';
+
+        menuData.forEach(menu => {
+            // Tampilkan kalau belum dipilih atau itu nilai sekarang
+            if (!selectedValues.includes(menu.id) || menu.id === current) {
+                const option = document.createElement("option");
+                option.value = menu.id;
+                option.textContent = menu.nama;
+                if (menu.id === current) option.selected = true;
+                select.appendChild(option);
+            }
+        });
+    });
+}
+
+document.querySelectorAll('.detail-button').forEach(btn => {
+    btn.addEventListener('click', function () {
+        const id = this.dataset.id;
+        const detailRow = document.getElementById('detail-' + id);
+        const container = detailRow.querySelector('.detail-container');
+
+        if (!detailRow.classList.contains('hidden')) {
+            detailRow.classList.add('hidden');
+            return;
+        }
+
+        fetch(`/pembelian/detail-json/${id}`)
+            .then(res => res.json())
+            .then(data => {
+                let html = ``;
+
+                if (data.items.length === 0) {
+                    html += '<p style="margin: 0; color: #888;">Tidak ada detail</p>';
+                } else {
+                    html += '<table class="sub-table">';
+                    html += '<thead><tr><th style="text-align:left;">Menu (Qty x Harga Satuan)</th><th style="text-align:right;">Subtotal</th></tr></thead>';
+                    html += '<tbody>';
+                    data.items.forEach(item => {
+                        html += `<tr>
+                                    <td>${item.nama} (${item.qty} × Rp${item.harga_beli.toLocaleString()})</td>
+                                    <td style="text-align:right;">Rp${item.subtotal.toLocaleString()}</td>
+                                </tr>`;
+                    });
+                    html += '</tbody></table>';
+                }
+
+                container.innerHTML = html;
+                detailRow.classList.remove('hidden');
+            })
+    });
+});
+</script>
+
+
+{% endblock %}

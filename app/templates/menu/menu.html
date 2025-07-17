@@ -48,6 +48,14 @@
 </div>
 
 <hr/>
+<div class="tombol-navigasi">
+    <form method="get" action="{{ url_for('menu.index') }}" class="search">
+        <div class="search-wrapper">
+            <input type="text" name="keyword" placeholder="Search menu..." value="{{ request.args.get('keyword', '') }}">
+            <button type="submit" class="btn-brown"><i class="fa fa-search"></i></button>
+        </div>
+    </form>
+</div>
 
 {% for kategori, items in menu_kategori.items() %}
     <h3 style="margin-top: 1.5rem;">{{ kategori }}</h3>
@@ -57,8 +65,8 @@
                 <th style="width: 20rem;">Nama</th>
                 <th>Gambar</th>
                 <th style="width: 20rem;">Harga</th>
-                <th>Stok</th>
-                <th style="width: 20rem;">Aksi</th>
+                <th style="width: 5rem">Stok</th>
+                <th style="width: 15rem;">Aksi</th>
             </tr>
         </thead>
         <tbody>
@@ -93,7 +101,7 @@
                 <td>
                     <div class="action-menu">
                         {% if not session.get('user', {}).get('role') == 'manajemen' %}
-                        <a href="/stok/tambah?from=menu&menu_id={{ item.menu_id }}" 
+                        <a href="/stok/list?selected_menu_id={{ item.menu_id }}" 
                         class="btn-oren action-a">📦 Tambah Stok</a>
                         {% endif %}
                         <form method="post" action="{{ url_for('menu.hapus_menu', menu_id=item.menu_id) }}" style="display:inline;" onsubmit="showToast('Menu berhasil dihapus')">

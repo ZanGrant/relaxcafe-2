@@ -14,16 +14,14 @@
     <h1>Laporan Pembelian</h1>
     <div class="nav-actions">
         <button type="submit" class="btn btn-green action-button"
-        onclick="toggleButtonOverlay('transactionreport-overlay')">📄 Laporan</button>
+        onclick="toggleButtonOverlay('invoicereport-overlay')">📄 Laporan</button>
         {% if session.get('user', {}).get('role') == 'admin' %}
             <button type="submit" class="btn btn-green action-button"
             onclick="toggleButtonOverlay('addpembelian-overlay')">➕ Tambah Pembelian</button>
         {% endif %}
     </div>
     <div style="display: flex; flex-direction: column;">
-        <span class="user-info">
-            👤 <b>{{ session.get('user', {}).get('nama', 'Guest') }}</b>
-        </span>
+        <span class="user-info">👤 <b>{{ session.get('user', {}).get('nama', 'Guest') }}</b></span>
     </div>
     {% endif %}
 </div>
@@ -67,7 +65,45 @@
   </form>
 </div>
 
+<!-- Overlay Laporan Pembelian -->
+<div id="invoicereport-overlay" class="overlay hidden">
+    <div class="content">
+        <h2>Filter Laporan Pembelian</h2>
+        <form method="get" class="form" action="{{ url_for('pembelian.laporan_pembelian_pdf') }}" target="_blank" id="form-laporan-pembelian">
+            <div>
+                <label for="start">Dari Tanggal</label>
+                <input type="date" id="start" name="start" required>
+            </div>
+            <div>
+                <label for="end">Sampai Tanggal</label>
+                <input type="date" id="end" name="end" required>
+            </div>
+            <div class="overlay-actions">
+                <button type="submit" class="btn btn-green action-button">📥 Unduh</button>
+                <button type="button" class="btn btn-back action-button" onclick="toggleButtonOverlay('invoicereport-overlay')">Batal</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <hr/>
+<!-- Filter -->
+<div class="tombol-navigasi">
+    <form method="get" class="form" id="form-filter-list-pembelian">
+        <div>
+            <label for="start">Dari Tanggal</label>
+            <input type="date" id="start" name="start" value="{{ request.args.get('start', '') }}">
+        </div>
+        <div>
+            <label for="end">Sampai Tanggal</label>
+            <input type="date" id="end" name="end" value="{{ request.args.get('end', '') }}">
+        </div>
+        <div>
+            <label style="visibility: hidden;">Filter</label>
+            <button type="submit" class="btn btn-blue action-button" style="padding: .5rem 1.5rem;">🔍 Filter</button>
+        </div>
+    </form>
+</div>
 
 <table class="table">
     <thead>
@@ -110,6 +146,10 @@
 
 
 <script>
+document.addEventListener("DOMContentLoaded", () => {
+    addTanggalRangeValidator('form-laporan-pembelian');
+    addTanggalRangeValidator('form-filter-list-pembelian');
+});
 const menuData = [
     {% for m in menu_list %}
         { id: "{{ m[0] }}", nama: "{{ m[1] }}" },

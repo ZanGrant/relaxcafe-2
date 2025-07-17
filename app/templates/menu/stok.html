@@ -14,8 +14,14 @@
     </div>
     {% else %}
     <h1>Laporan Stok Masuk</h1>
-    <button type="submit" class="btn btn-green action-button"
-    onclick="toggleButtonOverlay('stockreport-overlay')">📄 Laporan</button>
+    <div class="nav-actions">
+        <button type="submit" class="btn btn-green action-button"
+        onclick="toggleButtonOverlay('stockreport-overlay')">📄 Laporan</button>
+        {% if session.get('user', {}).get('role') == 'admin' %}
+            <button type="submit" class="btn btn-green action-button"
+            onclick="toggleButtonOverlay('addstock-overlay')">➕ Tambah Stok</button>
+        {% endif %}
+    </div>
     <div style="display: flex; flex-direction: column;">
         <span class="user-info">
             👤 <b>{{ session.get('user', {}).get('nama', 'Guest') }}</b>
@@ -32,9 +38,9 @@
             <label for="menu_id">Menu</label>
             <select name="menu_id" id="menu_id" required>
                 {% for item in menu_list %}
-                <option value="{{ item[0] }}"
-                    {% if selected_menu_id == item[0]|string %}selected{% endif %}>
-                    {{ item[1] }} (stok: {{ item[2] }})
+                <option value="{{ item['menu_id'] }}"
+                    {% if selected_menu_id == item['menu_id']|string %}selected{% endif %}>
+                    {{ item['nama'] }} (stok: {{ item['stok'] }})
                 </option>
                 {% endfor %}
             </select>
@@ -47,6 +53,12 @@
             <label for="keterangan">Keterangan (opsional)</label>
             <input type="text" name="keterangan" id="keterangan">
         </div>
+        <div>
+            <label for="beli_id">Referensi Pembelian (Jika ada)</label>
+            <select name="beli_id" id="beli_id">
+                <option value="">-- Tidak ada --</option>
+            </select>
+        </div>
         <div class="overlay-actions">
             <button type="submit" class="btn btn-green action-button">Tambah</button>
             <button onclick="toggleButtonOverlay('addstock-overlay')" class="btn btn-back action-button">Tutup</button>
@@ -54,7 +66,45 @@
     </form>
 </div>
 
+<!-- Overlay Laporan Stok -->
+<div id="stockreport-overlay" class="overlay hidden">
+    <div class="content">
+        <h2>Filter Laporan Stok</h2>
+        <form method="get" class="form" action="{{ url_for('stok.laporan_stok_pdf') }}" target="_blank" id="form-laporan-stok">
+            <div>
+                <label for="laporan-start">Dari Tanggal</label>
+                <input type="date" id="start" name="start" required>
+            </div>
+            <div>
+                <label for="laporan-end">Sampai Tanggal</label>
+                <input type="date" id="end" name="end" required>
+            </div>
+            <div class="overlay-actions">
+                <button type="submit" id="btn-unduh-laporan" class="btn btn-green action-button">📥 Unduh</button>
+                <button type="button" class="btn btn-back action-button" onclick="toggleButtonOverlay('stockreport-overlay')">Batal</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <hr/>
+<!-- Filter -->
+<div class="tombol-navigasi">
+    <form method="get" class="form" id="form-filter-list-stok" action="{{ url_for('stok.index') }}">
+        <div>
+            <label for="start">Dari Tanggal</label>
+            <input type="date" id="start" name="start" value="{{ request.args.get('start', '') }}">
+        </div>
+        <div>
+            <label for="end">Sampai Tanggal</label>
+            <input type="date" id="end" name="end" value="{{ request.args.get('end', '') }}">
+        </div>
+        <div>
+            <label style="visibility: hidden;">Filter</label>
+            <button type="submit" class="btn btn-blue action-button" style="padding: .5rem 1.5rem;">🔍 Filter</button>
+        </div>
+    </form>
+</div>
 
 
 <table class="table">
@@ -63,6 +113,7 @@
             <th>Tanggal</th>
             <th>Menu</th>
             <th>Jumlah</th>
+            <th>Referensi</th>
             <th>Keterangan</th>
         </tr>
     </thead>
@@ -72,6 +123,7 @@
             <td>{{ s.tanggal.strftime('%Y-%m-%d %H:%M') }}</td>
             <td>{{ s.nama }}</td>
             <td>+{{ s.jumlah }}</td>
+            <td>{{ s.beli_id if s.beli_id else '-' }}</td>
             <td>{{ s.keterangan or '-' }}</td>
         </tr>
         {% endfor %}
@@ -79,16 +131,81 @@
 </table>
 
 <script>
-    const form = document.querySelector('form');
-    form.addEventListener('submit', function (e) {
-        const existing = document.querySelector('input[name="timestamp"]');
-        if (!existing) {
-            const hiddenInput = document.createElement('input');
-            hiddenInput.type = 'hidden';
-            hiddenInput.name = 'timestamp';
-            hiddenInput.value = new Date().toISOString();
-            form.appendChild(hiddenInput);
+document.addEventListener("DOMContentLoaded", () => {
+    addTanggalRangeValidator('form-laporan-stok');
+    addTanggalRangeValidator('form-filter-list-stok');
+});
+document.addEventListener("DOMContentLoaded", function () {
+    const selectedMenuId = "{{ selected_menu_id or '' }}";
+    if (selectedMenuId && selectedMenuId !== "None") {
+        toggleButtonOverlay("addstock-overlay");
+
+        const url = new URL(window.location);
+        url.searchParams.delete('selected_menu_id');
+        window.history.replaceState({}, document.title, url.toString());
+    }
+});
+
+const form = document.querySelector('form');
+form.addEventListener('submit', function (e) {
+    const existing = document.querySelector('input[name="timestamp"]');
+    if (!existing) {
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = 'timestamp';
+        hiddenInput.value = new Date().toISOString();
+        form.appendChild(hiddenInput);
+    }
+});
+
+document.getElementById("btn-unduh-laporan").addEventListener("click", async () => {
+    console.log("Klik unduh laporan");
+    const form = document.getElementById("form-laporan-stok");
+    const start = form.start.value;
+    const end = form.end.value;
+
+    if (!start || !end) {
+        showToast("Tanggal harus diisi", "error");
+        return;
+    }
+
+    try {
+        const res = await fetch(`/stok/laporan?start=${start}&end=${end}`, {
+            method: "GET",
+        });
+
+        if (!res.ok) {
+            const data = await res.json();
+            showToast(data.error || "Terjadi kesalahan", "error");
+            return;
         }
+    } catch (err) {
+        console.error(err);
+        showToast("Gagal generate laporan", "error");
+    }
+});
+
+const pembelianData = {{ pembelian_by_menu | tojson }};
+const menuSelect = document.getElementById('menu_id');
+const beliSelect = document.getElementById('beli_id');
+
+function updateBeliDropdown(menuId) {
+    const list = pembelianData[menuId] || [];
+    beliSelect.innerHTML = '<option value="">-- Tidak ada --</option>';
+    list.forEach(beli => {
+        const option = document.createElement('option');
+        option.value = beli.beli_id;
+        option.textContent = `${beli.beli_id} - ${beli.vendor_nama}`;
+        beliSelect.appendChild(option);
     });
+}
+
+// Update saat menu diganti
+menuSelect.addEventListener('change', function () {
+    updateBeliDropdown(this.value);
+});
+
+// Trigger update saat pertama kali load
+updateBeliDropdown(menuSelect.value);
 </script>
 {% endblock %}

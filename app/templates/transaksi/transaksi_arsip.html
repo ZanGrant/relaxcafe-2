@@ -62,9 +62,9 @@
 
 
 <hr/>
-
+<!-- Filter -->
 <div class="tombol-navigasi">
-    <form method="get" class="form" id="form-filter-list">
+    <form method="get" class="form" id="form-filter-list-transaksi">
         <div>
             <label for="start">Dari Tanggal</label>
             <input type="date" id="start" name="start" value="{{ request.args.get('start', '') }}">
@@ -171,7 +171,7 @@ document.querySelectorAll('.detail-button').forEach(btn => {
 });
 document.addEventListener("DOMContentLoaded", () => {
     addTanggalRangeValidator('form-laporan-transaksi');
-    addTanggalRangeValidator('form-filter-list');
+    addTanggalRangeValidator('form-filter-list-transaksi');
 });
 
 </script>
