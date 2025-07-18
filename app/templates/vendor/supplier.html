@@ -4,8 +4,10 @@
 {% block content %}
 <div class="tombol-navigasi">
     <h1>Manajemen Supplier</h1>
-    <button type="submit" class="btn btn-green action-button"
-    onclick="toggleButtonOverlay('addsupplier-overlay')">➕ Tambah Supplier</button>
+    {% if session.get('user', {}).get('role') == 'staf' %}
+        <button type="submit" class="btn btn-green action-button"
+        onclick="toggleButtonOverlay('addsupplier-overlay')">➕ Tambah Supplier</button>
+    {% endif %}
     <span class="user-info">
         👤 <b>{{ session.get('user', {}).get('nama', 'Guest') }}</b>
     </span>

@@ -1,21 +1,35 @@
 ===============Halaman
 
+manager
 Manajemen:
-Vendor Data
-Laporan
-Request
+Data Menu (search/hapus)
+Data Supplier (search/hapus)
+--Detail invoice supplier(hapus)
+Stok Masuk (laporan/search-filter)
+Pembelian (laporan/search-filter/cetak/hapus)
+Acc Pembelian ()
+Transaksi (laporan/search-filter/cetak/hapus)
 
+staf
 Staf:
-Vendor Data
-Input menu
-Update stok
+Data Menu (create/search/hapus) (fitur exc:tambah stok per menu)
+Data Supplier (create/search/hapus)
+--Detail invoice supplier(hapus)
+Stok Masuk (create/search-filter)
 
+minho/jiwoo
 Kasir:
-Transaksi (rombak ulang)
+Transaksi (fitur exc: keranjang dan pembayaran)
+--Arsip Transaksi (lengkap)
 
+finance
 Finance:
-Penjualan
-Pembelian
+Pembelian (create/search-filter/cetak/hapus)
+Transaksi (laporan/search-filter/cetak/hapus)
+
+admin
+Admin:
+Lengkap
 
 
 ===============Dependencies
